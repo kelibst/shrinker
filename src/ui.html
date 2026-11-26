@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shrinker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%237c6cff'/%3E%3Cpath d='M5 13h6v6M19 11h-6V5M13 11l6-6M5 19l6-6' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    --bg: #0c0d12; --panel: #14161e; --panel-2: #1a1d27; --line: #262a37;
+    --text: #eceef5; --muted: #8b90a3; --faint: #5c6174;
+    --accent: #7c6cff; --accent-2: #2fd6c4; --good: #3ddc97; --warn: #ffb547; --bad: #ff5d73;
+    --grad: linear-gradient(90deg, var(--accent), var(--accent-2));
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Ubuntu, sans-serif;
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(124,108,255,.16), transparent 60%),
+      radial-gradient(700px 400px at -10% 10%, rgba(47,214,196,.10), transparent 60%),
+      var(--bg);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 24px 60px; }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  button:disabled { cursor: not-allowed; opacity: .45; }
+
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .logo { width: 40px; height: 40px; border-radius: 12px; background: var(--grad); display: grid; place-items: center; box-shadow: 0 8px 30px rgba(124,108,255,.35); flex: none; }
+  .logo svg { width: 22px; height: 22px; }
+  .title { min-width: 0; flex: 1; }
+  h1 { font: 600 20px/1 "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif; margin: 0; letter-spacing: -.01em; }
+  h1 small { font-size: 11px; color: var(--faint); font-weight: 500; margin-left: 6px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; text-align: left; }
+  .headbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { padding: 9px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); display: inline-flex; gap: 8px; align-items: center; transition: background .15s, border-color .15s; white-space: nowrap; }
+  .btn:hover:not(:disabled) { background: #222634; border-color: #33384a; }
+  .btn svg { width: 16px; height: 16px; opacity: .85; }
+  .btn.quit { color: var(--muted); }
+
+  .banner { margin: 0 0 16px; padding: 16px 18px; border-radius: 14px; background: rgba(255,93,115,.1); border: 1px solid rgba(255,93,115,.35); color: #ffb3bd; }
+  .banner b { color: #fff; display: block; margin-bottom: 4px; }
+  .toast { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: rgba(255,181,71,.1); color: var(--warn); border: 1px solid rgba(255,181,71,.3); }
+
+  .hero { display: grid; grid-template-columns: 150px 1fr auto; gap: 26px; align-items: center; padding: 22px 26px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .ring { position: relative; width: 150px; height: 150px; }
+  .ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .ring .pct { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring .pct b { font: 600 34px/1 "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  .ring .pct span { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .now { min-width: 0; }
+  .now .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+  .now .file { font-size: 18px; font-weight: 600; margin: 4px 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stats { display: flex; gap: 26px; flex-wrap: wrap; }
+  .stat .k { color: var(--faint); font-size: 12px; }
+  .stat .v { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stat .v.good { color: var(--good); }
+  .actions { display: flex; flex-direction: column; gap: 10px; }
+  .primary { padding: 14px 26px; border-radius: 12px; background: var(--grad); color: #0b0b14; font-weight: 700; font-size: 15px; display: inline-flex; gap: 10px; align-items: center; justify-content: center; box-shadow: 0 10px 30px rgba(124,108,255,.3); transition: transform .1s, filter .15s; }
+  .primary:hover:not(:disabled) { filter: brightness(1.08); }
+  .primary:active:not(:disabled) { transform: translateY(1px); }
+  .stopbtn { padding: 14px 26px; border-radius: 12px; background: rgba(255,93,115,.12); border: 1px solid rgba(255,93,115,.4); color: #ff8b9b; font-weight: 700; font-size: 15px; display: inline-flex; gap: 10px; align-items: center; justify-content: center; }
+  .stopbtn:hover:not(:disabled) { background: rgba(255,93,115,.2); }
+  .primary svg, .stopbtn svg { width: 16px; height: 16px; }
+
+  .group { margin-top: 16px; }
+  .group h3 { margin: 0 0 8px 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; display: flex; gap: 8px; align-items: center; }
+  .group h3 svg { width: 14px; height: 14px; }
+  .settings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .settings.three { grid-template-columns: repeat(3, 1fr); }
+  .setting { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .setting .t { font-size: 12px; color: var(--muted); margin-bottom: 9px; }
+  .seg { display: flex; background: var(--bg); border-radius: 10px; padding: 3px; gap: 2px; }
+  .seg button { flex: 1; padding: 7px 4px; border-radius: 8px; color: var(--muted); font-size: 13px; transition: background .15s, color .15s; }
+  .seg button.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px #343a4d; }
+  .seg button:hover:not(.on):not(:disabled) { color: var(--text); }
+  .hint { font-size: 12px; color: var(--faint); margin-top: 8px; min-height: 17px; }
+
+  .listhead { display: flex; align-items: center; gap: 12px; margin: 24px 0 10px; padding: 0 4px; flex-wrap: wrap; }
+  .listhead h2 { font-size: 15px; margin: 0; font-weight: 600; }
+  .listhead .muted { color: var(--muted); font-size: 13px; }
+  .spacer { flex: 1; }
+  .tabs { display: flex; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .tabs button { padding: 4px 12px; border-radius: 7px; color: var(--muted); font-size: 13px; }
+  .tabs button.on { background: var(--panel-2); color: var(--text); }
+  .link { color: var(--accent-2); font-size: 13px; }
+  .link:hover { text-decoration: underline; }
+  .files { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: grid; grid-template-columns: 26px 112px 1fr 230px; gap: 16px; align-items: center; padding: 12px 16px 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); transition: border-color .2s, background .2s, opacity .2s; }
+  .row.active { border-color: rgba(124,108,255,.55); background: linear-gradient(180deg, rgba(124,108,255,.07), transparent), var(--panel); }
+  .row.unselected { opacity: .55; }
+  .check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #454b60; display: grid; place-items: center; transition: background .15s, border-color .15s; }
+  .check.on { background: var(--accent); border-color: var(--accent); }
+  .check svg { width: 13px; height: 13px; opacity: 0; }
+  .check.on svg { opacity: 1; }
+  .thumb { width: 112px; height: 63px; border-radius: 10px; background: #0a0b10; position: relative; overflow: hidden; border: 1px solid var(--line); display: grid; place-items: center; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .dur { position: absolute; right: 5px; bottom: 5px; font-size: 11px; padding: 1px 5px; border-radius: 5px; background: rgba(0,0,0,.7); font-variant-numeric: tabular-nums; }
+  .thumb .kind { position: absolute; left: 5px; top: 5px; width: 18px; height: 18px; border-radius: 5px; background: rgba(0,0,0,.65); display: grid; place-items: center; }
+  .thumb .kind svg { width: 12px; height: 12px; }
+  .row.broken .thumb::after { content: "⚠"; font-size: 22px; color: var(--bad); }
+  .row.broken .thumb img, .row.broken .thumb .kind { display: none; }
+  .row.broken .check { opacity: .3; }
+  .info { min-width: 0; }
+  .name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .bar { height: 6px; border-radius: 6px; background: #22263a; margin-top: 10px; overflow: hidden; position: relative; }
+  .bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 6px; background: var(--grad); transition: width .4s ease; }
+  .bar.live > i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: shimmer 1.4s infinite; }
+  .bar.paused > i { background: var(--warn); }
+  .bar.done > i { background: var(--good); }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+  .err { color: var(--bad); font-size: 12.5px; margin-top: 6px; }
+  .note { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+  .side { text-align: right; }
+  .sizes { font-variant-numeric: tabular-nums; font-size: 13.5px; }
+  .sizes .arrow { color: var(--faint); margin: 0 6px; }
+  .sizes .after { font-weight: 600; }
+  .saving { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 6px; background: rgba(61,220,151,.13); color: var(--good); font-size: 12px; font-weight: 600; }
+  .saving.bigger { background: rgba(255,181,71,.13); color: var(--warn); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 9px; border-radius: 20px; background: var(--panel-2); color: var(--muted); margin-top: 7px; }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .chip.encoding, .chip.joining { color: #b5acff; background: rgba(124,108,255,.14); }
+  .chip.encoding .dot, .chip.joining .dot { animation: pulse 1.2s infinite; }
+  .chip.done { color: var(--good); background: rgba(61,220,151,.12); }
+  .chip.paused { color: var(--warn); background: rgba(255,181,71,.12); }
+  .chip.error { color: var(--bad); background: rgba(255,93,115,.12); }
+  .chip.queued { color: #9fc3ff; background: rgba(120,170,255,.12); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .mini { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+  .mini button { font-size: 12px; color: var(--muted); }
+  .mini button:hover { color: var(--text); text-decoration: underline; }
+  .empty { padding: 50px; text-align: center; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: var(--radius); }
+  .closed { max-width: 460px; margin: 18vh auto; text-align: center; color: var(--muted); }
+  .closed h1 { margin-bottom: 12px; }
+  footer { color: var(--faint); font-size: 12px; margin-top: 26px; text-align: center; }
+
+  @media (max-width: 960px) {
+    .hero { grid-template-columns: 130px 1fr; }
+    .ring { width: 130px; height: 130px; }
+    .actions { grid-column: 1 / -1; flex-direction: row; }
+    .actions > * { flex: 1; }
+    .settings, .settings.three { grid-template-columns: 1fr 1fr; }
+    .row { grid-template-columns: 26px 96px 1fr 200px; }
+    .thumb { width: 96px; height: 54px; }
+  }
+  @media (max-width: 720px) {
+    .wrap { padding: 18px 14px 40px; }
+    header { flex-wrap: wrap; }
+    .title { flex-basis: calc(100% - 60px); }
+    .headbtns { width: 100%; }
+    .headbtns .btn { flex: 1; justify-content: center; }
+    .hero { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 20px 16px; }
+    .now { width: 100%; }
+    .stats { justify-content: center; gap: 14px 22px; }
+    .actions { width: 100%; flex-direction: column; }
+    .row { grid-template-columns: 26px 1fr; gap: 10px 12px; padding: 12px; }
+    .row .thumb { display: none; }
+    .side { grid-column: 2; text-align: left; }
+    .mini { justify-content: flex-start; }
+  }
+  @media (max-width: 460px) {
+    .settings, .settings.three { grid-template-columns: 1fr; }
+    .seg button { padding: 9px 4px; }
+    h1 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0b0b14" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>
+    </div>
+    <div class="title">
+      <h1>Shrinker <small id="version"></small></h1>
+      <div class="sub" id="dir">No folder chosen</div>
+    </div>
+    <div class="headbtns">
+      <button class="btn" id="refresh" title="Look for new or changed files in this folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>Refresh</button>
+      <button class="btn" id="openFolder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Open folder…</button>
+      <button class="btn" id="pickFiles"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>Pick files…</button>
+      <button class="btn quit" id="quit" title="Close Shrinker (stopped work is kept)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Quit</button>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+  <div id="toast"></div>
+
+  <section class="hero">
+    <div class="ring">
+      <svg viewBox="0 0 150 150">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c6cff"/><stop offset="1" stop-color="#2fd6c4"/></linearGradient></defs>
+        <circle cx="75" cy="75" r="64" stroke="#22263a" stroke-width="12" fill="none"/>
+        <circle id="ringArc" cx="75" cy="75" r="64" stroke="url(#g)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="402.1" stroke-dashoffset="402.1" style="transition: stroke-dashoffset .5s ease"/>
+      </svg>
+      <div class="pct"><div><b id="pct">0%</b><span>of selection</span></div></div>
+    </div>
+    <div class="now">
+      <div class="label" id="nowLabel">Ready</div>
+      <div class="file" id="nowFile">Pick videos or images and press Start</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Selected</div><div class="v" id="sSel">—</div></div>
+        <div class="stat"><div class="k">Original size</div><div class="v" id="sOrig">—</div></div>
+        <div class="stat"><div class="k">New size</div><div class="v" id="sNew">—</div></div>
+        <div class="stat"><div class="k">Speed</div><div class="v" id="sSpeed">—</div></div>
+        <div class="stat"><div class="k">Time left</div><div class="v" id="sEta">—</div></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg><span id="startText">Start</span></button>
+      <button class="stopbtn" id="stop" hidden><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
+      <button class="btn" id="reveal" style="justify-content:center">Open output folder</button>
+    </div>
+  </section>
+
+  <section class="group" id="videoSettings">
+    <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/></svg>Videos</h3>
+    <div class="settings">
+      <div class="setting"><div class="t">File size</div>
+        <div class="seg" data-key="quality"><button data-v="small">Smallest</button><button data-v="balanced">Balanced</button><button data-v="high">Best look</button></div>
+        <div class="hint" data-hint="quality"></div></div>
+      <div class="setting"><div class="t">Format</div>
+        <div class="seg" data-key="codec"><button data-v="hevc">H.265</button><button data-v="h264">H.264</button></div>
+        <div class="hint" data-hint="codec"></div></div>
+      <div class="setting"><div class="t">Resolution</div>
+        <div class="seg" data-key="resolution"><button data-v="keep">Keep</button><button data-v="1080">1080p</button><button data-v="720">720p</button></div>
+        <div class="hint" data-hint="resolution"></div></div>
+      <div class="setting"><div class="t">Encoder</div>
+        <div class="seg" data-key="encoder"><button data-v="gpu">Graphics chip</button><button data-v="cpu">Processor</button></div>
+        <div class="hint" data-hint="encoder"></div></div>
+    </div>
+  </section>
+
+  <section class="group" id="imageSettings">
+    <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Images</h3>
+    <div class="settings three">
+      <div class="setting"><div class="t">File size</div>
+        <div class="seg" data-key="imgQuality"><button data-v="small">Smallest</button><button data-v="balanced">Balanced</button><button data-v="high">Best look</button></div>
+        <div class="hint" data-hint="imgQuality"></div></div>
+      <div class="setting"><div class="t">Format</div>
+        <div class="seg" data-key="imgFormat"><button data-v="auto">JPEG</button><button data-v="webp">WebP</button></div>
+        <div class="hint" data-hint="imgFormat"></div></div>
+      <div class="setting"><div class="t">Largest side</div>
+        <div class="seg" data-key="imgSize"><button data-v="keep">Keep</button><button data-v="2560">2560</button><button data-v="1920">1920</button><button data-v="1280">1280</button></div>
+        <div class="hint" data-hint="imgSize"></div></div>
+    </div>
+  </section>
+
+  <div class="listhead">
+    <h2>Files</h2>
+    <span class="muted" id="count"></span>
+    <div class="tabs" id="tabs"><button data-f="all" class="on">All</button><button data-f="video">Videos</button><button data-f="image">Images</button></div>
+    <div class="spacer"></div>
+    <button class="link" id="selAll">Select all</button>
+    <button class="link" id="selNone">Select none</button>
+  </div>
+  <div class="files" id="files"></div>
+
+  <footer>Originals are never changed. Results are saved to a <b>compressed</b> folder next to them.
+    Stopping keeps finished work, so the next Start carries on from the same spot.</footer>
+</div>
+
+<script>
+const GPU_NAMES = { qsv: "Intel Quick Sync", nvenc: "NVIDIA NVENC", videotoolbox: "Apple VideoToolbox" };
+const HINTS = {
+  quality: { small: "Smallest files; fine for phones & WhatsApp", balanced: "Good quality, much smaller files", high: "Looks close to the original" },
+  codec: { hevc: "About half the size; plays on modern devices", h264: "Bigger, but plays on every device" },
+  resolution: { keep: "Same size picture as the original", "1080": "Scales down anything bigger than 1080p", "720": "Smaller still; good for phone viewing" },
+  encoder: { gpu: "Many times faster; files a little bigger", cpu: "Slow on laptops; slightly smaller files" },
+  imgQuality: { small: "Smallest; fine for messages and the web", balanced: "Hard to tell from the original", high: "Near-original quality" },
+  imgFormat: { auto: "Opens everywhere; transparent images become WebP", webp: "About 30% smaller; works in browsers & phones" },
+  imgSize: { keep: "Same number of pixels", "2560": "Sharp on big screens", "1920": "Full-HD screens and most uses", "1280": "Phones, messages, email" },
+};
+const ICON = {
+  video: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="m9 7 8 5-8 5z" fill="#fff"/></svg>',
+  image: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><circle cx="9" cy="9" r="2"/><path d="m21 17-5-5-11 9"/></svg>',
+};
+let S = null;
+let filter = "all";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const post = (url, body) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body || {}) })
+  .then((r) => r.json())
+  .then((j) => { if (j.error && j.error !== "no-picker") toast(j.error); poll(); return j; })
+  .catch(() => ({ error: "offline" }));
+
+function fmtSize(b) {
+  if (!b) return "0 KB";
+  if (b >= 1e9) return (b / 1e9).toFixed(2) + " GB";
+  if (b >= 1e6) return (b / 1e6).toFixed(b >= 1e8 ? 0 : 1) + " MB";
+  return Math.max(1, Math.round(b / 1e3)) + " KB";
+}
+function fmtTime(s) {
+  if (s == null || !isFinite(s)) return "—";
+  s = Math.round(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(x).padStart(2, "0")}` : `${m}:${String(x).padStart(2, "0")}`;
+}
+function fmtEta(s) {
+  if (s == null || !isFinite(s)) return "—";
+  if (s < 60) return "< 1 min";
+  const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+  return h ? `${h} h ${m} min` : `${m} min`;
+}
+let toastTimer;
+function toast(msg) {
+  $("toast").innerHTML = msg ? `<div class="toast">${esc(msg)}</div>` : "";
+  clearTimeout(toastTimer);
+  if (msg) toastTimer = setTimeout(() => ($("toast").innerHTML = ""), 6000);
+}
+function projected(f) {
+  if (f.status === "done") return f.outSize;
+  if (f.kind === "video" && f.outSize && f.progress > 0.02) return f.outSize / f.progress;
+  return null;
+}
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const STATUS = { ready: "Ready", queued: "Waiting", encoding: "Shrinking", joining: "Finishing up", done: "Done", paused: "Stopped", error: "Problem" };
+const visible = () => S.files.filter((f) => filter === "all" || f.kind === filter);
+
+function renderFiles() {
+  const box = $("files");
+  const files = visible();
+  if (!files.length) {
+    box.dataset.keys = "";
+    box.innerHTML = `<div class="empty">${S.problem ? "Install ffmpeg first (see above)." : S.message ? esc(S.message) : S.files.length ? "Nothing of this kind here." : "Open a folder or pick files to begin."}</div>`;
+    return;
+  }
+  const keys = files.map((f) => f.name).join("\n");
+  if (box.dataset.keys !== keys) {
+    box.dataset.keys = keys;
+    box.innerHTML = files.map((f) => `
+      <div class="row" data-name="${esc(f.name)}">
+        <button class="check" data-act="toggle"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></button>
+        <div class="thumb">${f.ok ? `<img loading="lazy" alt="" src="/api/thumb?name=${encodeURIComponent(f.name)}">` : ""}<span class="kind">${ICON[f.kind]}</span><span class="dur" hidden></span></div>
+        <div class="info"><div class="name"></div><div class="meta"></div><div class="bar"><i></i></div><div class="err"></div><div class="note"></div></div>
+        <div class="side"><div class="sizes"></div><span class="chip"><span class="dot"></span><span class="ct"></span></span><div class="mini"></div></div>
+      </div>`).join("");
+  }
+  files.forEach((f, i) => {
+    const row = box.children[i];
+    const busy = S.running;
+    const broken = !f.ok;
+    row.className = "row" + (S.current === f.name && f.status !== "done" ? " active" : "") + (f.selected ? "" : " unselected") + (broken ? " broken" : "");
+    const check = row.querySelector(".check");
+    check.className = "check" + (f.selected ? " on" : "");
+    check.disabled = busy || broken;
+    const dur = row.querySelector(".dur");
+    dur.hidden = f.kind !== "video" || broken;
+    dur.textContent = fmtTime(f.duration);
+    row.querySelector(".name").textContent = f.name;
+    row.querySelector(".name").title = f.name;
+    const meta = [];
+    if (!broken) {
+      meta.push(`${f.width}×${f.height}`);
+      if (f.codec) meta.push(f.codec === "mjpeg" ? "JPEG" : f.codec.toUpperCase());
+      if (f.kind === "video" && f.bitrate) meta.push(`${(f.bitrate / 1e6).toFixed(1)} Mbps`);
+      if (f.kind === "image" && f.alpha) meta.push("transparent");
+    }
+    if (f.jobSettings && f.status === "paused") {
+      const js = f.jobSettings;
+      meta.push(`resumes as ${js.codec === "hevc" ? "H.265" : "H.264"} · ${js.quality} · ${js.resolution === "keep" ? "same size" : js.resolution + "p"}`);
+    }
+    row.querySelector(".meta").textContent = meta.join(" · ");
+    const bar = row.querySelector(".bar");
+    bar.className = "bar" + (f.status === "encoding" || f.status === "joining" ? " live" : f.status === "paused" ? " paused" : f.status === "done" ? " done" : "");
+    bar.firstElementChild.style.width = ((f.progress || 0) * 100).toFixed(1) + "%";
+    row.querySelector(".err").textContent = f.error || "";
+    row.querySelector(".note").textContent = f.status === "done" && f.note ? f.note : "";
+    const proj = projected(f);
+    let sizes = broken ? "" : fmtSize(f.size);
+    if (proj) {
+      const pct = Math.round((1 - proj / f.size) * 100);
+      sizes += `<span class="arrow">→</span><span class="after">${f.status === "done" ? "" : "≈ "}${fmtSize(proj)}</span>` +
+        (pct >= 0 ? `<span class="saving">−${pct}%</span>` : `<span class="saving bigger">+${-pct}%</span>`);
+    }
+    row.querySelector(".sizes").innerHTML = sizes;
+    const chip = row.querySelector(".chip");
+    chip.className = "chip " + (f.status || "ready");
+    let ct = STATUS[f.status] || f.status;
+    if (f.status === "encoding" && f.kind === "video") ct += ` · ${Math.floor((f.progress || 0) * 100)}%`;
+    if (f.status === "paused") ct = `Stopped at ${Math.floor((f.progress || 0) * 100)}%`;
+    if (f.status === "queued" && f.progress > 0) ct = `Waiting · resumes at ${Math.floor(f.progress * 100)}%`;
+    chip.querySelector(".ct").textContent = ct;
+    let mini = "";
+    if (f.status === "done") mini += `<button data-act="reveal">Show file</button>`;
+    if (f.status === "paused" && !busy) mini += `<button data-act="discard">Start over</button>`;
+    row.querySelector(".mini").innerHTML = mini;
+  });
+}
+
+function renderHero() {
+  const sel = S.files.filter((f) => f.selected && f.ok);
+  const vids = sel.filter((f) => f.kind === "video"), imgs = sel.filter((f) => f.kind === "image");
+  // progress weighted by file size, so a big video counts more than a small photo
+  let orig = 0, doneBytes = 0, newSize = 0, allProj = true;
+  for (const f of sel) {
+    orig += f.size;
+    doneBytes += f.size * (f.progress || 0);
+    const p = projected(f);
+    if (p) newSize += p; else allProj = false;
+  }
+  const pct = orig ? doneBytes / orig : 0;
+  $("pct").textContent = Math.floor(pct * 100) + "%";
+  $("ringArc").style.strokeDashoffset = (402.1 * (1 - pct)).toFixed(1);
+  const parts = [];
+  if (vids.length) parts.push(`${plural(vids.length, "video")} · ${fmtTime(vids.reduce((a, f) => a + f.duration, 0))}`);
+  if (imgs.length) parts.push(plural(imgs.length, "image"));
+  $("sSel").textContent = parts.join(" · ") || "—";
+  $("sOrig").textContent = sel.length ? fmtSize(orig) : "—";
+  $("sNew").textContent = newSize ? (allProj ? "" : "so far ≈ ") + fmtSize(newSize) : "—";
+  $("sNew").className = "v" + (newSize ? " good" : "");
+  const cur = S.files.find((f) => f.name === S.current);
+  const speed = cur && cur.kind === "video" && cur.status === "encoding" ? cur.speed : null;
+  $("sSpeed").textContent = speed ? speed.toFixed(2) + "× realtime" : "—";
+  if (S.running && speed) {
+    let rem = 0;
+    for (const n of S.queue) { const f = S.files.find((x) => x.name === n); if (f && f.kind === "video") rem += f.duration * (1 - (f.progress || 0)); }
+    $("sEta").textContent = fmtEta(rem / speed);
+  } else $("sEta").textContent = "—";
+
+  const allDone = sel.length && sel.every((f) => f.status === "done");
+  const left = S.queue.length;
+  if (S.stopping) $("nowLabel").textContent = "Stopping…";
+  else if (S.running) $("nowLabel").textContent = cur && cur.status === "joining" ? "Finishing up" : `Shrinking · ${plural(left, "file")} to go`;
+  else $("nowLabel").textContent = allDone ? "All done" : "Ready";
+  $("nowFile").textContent = S.running
+    ? (cur && cur.kind === "video" && cur.status !== "done" ? cur.name : "Images…")
+    : sel.length ? (allDone ? "Everything selected is shrunk 🎉" : "Press Start when you're ready") : "Pick videos or images and press Start";
+
+  $("start").hidden = S.running;
+  $("stop").hidden = !S.running;
+  $("stop").disabled = S.stopping;
+  $("startText").textContent = sel.some((f) => f.status === "paused") ? "Resume" : "Start";
+  $("start").disabled = !!S.problem || !sel.some((f) => f.status !== "done");
+  for (const id of ["openFolder", "pickFiles", "refresh"]) $(id).disabled = S.running || S.stopping || !!S.problem;
+  $("dir").innerHTML = `<bdi>${esc(S.dir || "No folder chosen")}</bdi>`;
+  $("dir").title = S.dir || "";
+  $("version").textContent = S.version ? "v" + S.version : "";
+  const vis = visible();
+  $("count").textContent = S.files.length ? `${vis.filter((f) => f.selected).length} of ${vis.length} selected` : "";
+  document.title = S.running ? `${Math.floor(pct * 100)}% · Shrinker` : "Shrinker";
+  $("banner").innerHTML = S.problem ? `<div class="banner"><b>ffmpeg is missing</b>${esc(S.problem)}</div>` : "";
+  // show only the settings that matter for this folder
+  const hasV = S.files.some((f) => f.kind === "video"), hasI = S.files.some((f) => f.kind === "image");
+  $("videoSettings").hidden = S.files.length > 0 && !hasV;
+  $("imageSettings").hidden = S.files.length > 0 && !hasI;
+}
+
+function renderSettings() {
+  document.querySelectorAll(".seg").forEach((seg) => {
+    const k = seg.dataset.key;
+    seg.querySelectorAll("button").forEach((b) => {
+      b.classList.toggle("on", S.settings[k] === b.dataset.v);
+      b.disabled = S.running || (k === "encoder" && b.dataset.v === "gpu" && !S.gpu);
+    });
+    let hint = (HINTS[k] || {})[S.settings[k]] || "";
+    if (k === "encoder" && !S.gpu) hint = "No graphics-chip encoder found on this computer";
+    if (k === "encoder" && S.gpu && S.settings.encoder === "gpu") hint = `Using ${GPU_NAMES[S.gpu] || S.gpu}; many times faster`;
+    document.querySelector(`[data-hint="${k}"]`).textContent = hint;
+  });
+}
+
+function render() { renderHero(); renderSettings(); renderFiles(); }
+
+let pollTimer = null;
+async function poll() {
+  clearTimeout(pollTimer);
+  try {
+    S = await (await fetch("/api/state", { cache: "no-store" })).json();
+    render();
+  } catch {
+    $("nowLabel").textContent = "Disconnected — is Shrinker still running?";
+  }
+  pollTimer = setTimeout(poll, S && (S.running || !S.files.length) ? 500 : 2000);
+}
+poll();
+
+// Systems without a folder picker (e.g. Linux without zenity) get a text prompt instead.
+$("openFolder").onclick = async () => {
+  const j = await post("/api/open-folder");
+  if (j.error === "no-picker") {
+    const p = prompt("Type or paste the folder path:", S.dir || "");
+    if (p) post("/api/open-folder", { path: p });
+  }
+};
+$("pickFiles").onclick = async () => {
+  const j = await post("/api/pick-files");
+  if (j.error === "no-picker") {
+    const p = prompt("Type or paste the path of a video or image:", S.dir || "");
+    if (p) post("/api/open-folder", { path: p });
+  }
+};
+$("refresh").onclick = () => post("/api/refresh");
+$("start").onclick = () => post("/api/start");
+$("stop").onclick = () => post("/api/stop");
+$("reveal").onclick = () => post("/api/reveal");
+$("quit").onclick = async () => {
+  if (S.running && !confirm("Stop and close Shrinker? Finished work is kept; Start carries on next time.")) return;
+  clearTimeout(pollTimer);
+  await fetch("/api/quit", { method: "POST" }).catch(() => {});
+  document.body.innerHTML = `<div class="closed"><h1>Shrinker has closed</h1><p>You can close this tab. Open Shrinker again any time; stopped work carries on from where it was.</p></div>`;
+};
+$("selAll").onclick = () => !S.running && post("/api/select", { names: visible().map((f) => f.name), value: true });
+$("selNone").onclick = () => !S.running && post("/api/select", { names: visible().map((f) => f.name), value: false });
+$("tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  filter = b.dataset.f;
+  $("tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  render();
+});
+document.querySelectorAll(".seg").forEach((seg) => seg.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (b && !b.disabled) post("/api/settings", { [seg.dataset.key]: b.dataset.v });
+}));
+$("files").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]");
+  const row = e.target.closest(".row");
+  if (!row) return;
+  const f = S.files.find((x) => x.name === row.dataset.name);
+  if (!f) return;
+  const act = b ? b.dataset.act : "toggle";
+  if (act === "toggle" && !S.running && f.ok) post("/api/select", { names: [f.name], value: !f.selected });
+  if (act === "reveal") post("/api/reveal", { name: f.name });
+  if (act === "discard" && confirm(`Throw away the partly shrunk "${f.name}" and start it from the beginning?`)) post("/api/discard", { name: f.name });
+});
+</script>
+</body>
+</html>

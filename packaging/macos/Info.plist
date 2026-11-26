@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Shrinker</string>
+  <key>CFBundleDisplayName</key><string>Shrinker</string>
+  <key>CFBundleIdentifier</key><string>com.kelibst.shrinker</string>
+  <key>CFBundleVersion</key><string>__VERSION__</string>
+  <key>CFBundleShortVersionString</key><string>__VERSION__</string>
+  <key>CFBundleExecutable</key><string>shrinker</string>
+  <key>CFBundleIconFile</key><string>shrinker</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>LSMinimumSystemVersion</key><string>11.0</string>
+  <!-- No Dock icon: the app is a page in the browser with its own Quit button. -->
+  <key>LSUIElement</key><true/>
+  <key>NSHumanReadableCopyright</key><string>© 2026 Keli Booster. MIT licence.</string>
+</dict>
+</plist>

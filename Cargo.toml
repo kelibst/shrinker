@@ -1,0 +1,39 @@
+[package]
+name = "shrinker"
+version = "0.2.0"
+edition = "2021"
+description = "Make videos and images smaller with ffmpeg, from a small local web page or the terminal. Stop and resume any time."
+license = "MIT"
+repository = "https://github.com/kelibst/shrinker"
+readme = "README.md"
+publish = false
+
+[dependencies]
+tiny_http = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+
+# `cargo deb` → shrinker_<version>_amd64.deb (installs ffmpeg as a dependency)
+[package.metadata.deb]
+maintainer = "Keli Booster"
+copyright = "2026, Keli Booster"
+section = "video"
+priority = "optional"
+depends = "ffmpeg, xdg-utils"
+recommends = "zenity"
+extended-description = """\
+Shrinker makes big videos and photos smaller with ffmpeg. It opens a page in \
+your browser (or works in the terminal with --cli), uses the graphics chip when \
+it can, never changes the originals, and can be stopped and resumed at any time."""
+assets = [
+  ["target/release/shrinker", "usr/bin/", "755"],
+  ["packaging/linux/shrinker.desktop", "usr/share/applications/", "644"],
+  ["packaging/icons/shrinker-256.png", "usr/share/icons/hicolor/256x256/apps/shrinker.png", "644"],
+  ["packaging/icons/shrinker.svg", "usr/share/icons/hicolor/scalable/apps/shrinker.svg", "644"],
+  ["README.md", "usr/share/doc/shrinker/README.md", "644"],
+]

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Shrinker
+GenericName=Video and image compressor
+Comment=Make videos and photos smaller; stop and resume any time
+Exec=shrinker %f
+Icon=shrinker
+Terminal=false
+Categories=AudioVideo;Video;Graphics;Utility;
+MimeType=inode/directory;video/mp4;video/quicktime;video/x-matroska;video/webm;video/x-msvideo;image/jpeg;image/png;image/webp;image/heic;
+Keywords=compress;shrink;video;photo;image;ffmpeg;
+StartupNotify=false
